@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = [ "Ivan Egorov <vany.egorov@gmail.com>" ]
 
 [dependencies]
-toml = "0.1"
+yaml-rust = "*"
 regex = "0.1.8"
 chrono = "0.2"
+clap = "1.4"
