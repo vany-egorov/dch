@@ -1,0 +1,9 @@
+[package]
+name = "dch"
+version = "0.0.1"
+authors = [ "Ivan Egorov <vany.egorov@gmail.com>" ]
+
+[dependencies]
+toml = "0.1"
+regex = "0.1.8"
+chrono = "0.2"
