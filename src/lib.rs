@@ -7,3 +7,4 @@ extern crate yaml_rust;
 pub mod changelog;
 pub mod record;
 pub mod config;
+pub mod dchfile;

@@ -4,7 +4,7 @@ use std::io::BufRead;
 use std::io::Write;
 use regex::Regex;
 use chrono::{DateTime,UTC};
-use record::Record;
+use record::{Record, MantainerDetails};
 
 pub struct Changelog {
     records: Vec<Record>,
@@ -39,12 +39,17 @@ impl Changelog {
         let version = format!("3.0.0.{}", UTC::now().format("%Y%m%d-%H%M%S"));
 
         let mut record = Record::new();
-        record.package = "cdn-api".to_string();
+        record.package = "(^.^)".to_string();
         record.version = version.to_string();
         record.distribution = "stable".to_string();
         record.urgency = "medium".to_string();
 
-        record.details.push("autocommit-fix".to_string());
+        record.mantainer_details
+            .iter_mut()
+            .last()
+            .unwrap()
+                .details
+                .push("autocommit-fix".to_string());
 
         record.mantainer_name = "Ivan Egorov".to_string();
         record.mantainer_email = "vany.egorov@gmail.com".to_string();
@@ -57,7 +62,7 @@ impl Changelog {
             ^
                 (?P<package>[\w-]+)                           # package
             \s
-                \((?P<version>[\d\.]+)\)                      # version
+                \((?P<version>[\d\w\s-_.=+:]+)\)              # version
             \s
                 (?P<distribution>[\w\s\d]+); # distribution
             \s
@@ -65,11 +70,16 @@ impl Changelog {
         $").unwrap();
 
         let re2 = Regex::new(r"(?x)
-            ^\s*\*\s*           # (  * ) - details separator
-                (?P<details>.*) # details
+            ^\s*\*\s*          # (  * ) - detail separator
+                (?P<detail>.*) # detail
         ").unwrap();
 
         let re3 = Regex::new(r"(?x)
+            ^\s*
+                \[\s(?P<mantainer>.*)\s\] # mantainer
+        ").unwrap();
+
+        let re4 = Regex::new(r"(?x)
             ^\s*--\s*
                 (?P<mantainer_name>[\d\w\s-_.=+:]+) # mantainer_name
             <
@@ -87,6 +97,7 @@ impl Changelog {
                 let mut is_re1 = false;
                 let mut is_re2 = false;
                 let mut is_re3 = false;
+                let mut is_re4 = false;
 
                 let mut accumulator = Record::new();
 
@@ -113,11 +124,49 @@ impl Changelog {
                     for cap in re2.captures_iter(l) {
                         is_re2 = true;
                         is_re2_local = true;
-                        accumulator.details.push(cap.name("details").unwrap().to_string());
+
+                        match accumulator.mantainer_details.iter_mut().last() {
+                            Some(mantainer_details) => {
+                                mantainer_details
+                                .details
+                                .push(cap
+                                    .name("detail")
+                                    .unwrap()
+                                    .to_string());
+                            }
+                            None => panic!("mantainer-details is empty")
+                        }
                     }
 
                     for cap in re3.captures_iter(l) {
                         is_re3 = true;
+
+                        let mantainer = cap
+                            .name("mantainer")
+                            .unwrap();
+
+                        let mut got_one_more_mantainer = false;
+
+                        match accumulator.mantainer_details.iter_mut().last() {
+                            Some(md) => {
+                                if md.mantainer.is_empty() {
+                                    md.mantainer = String::from(mantainer.to_string());
+                                } else {
+                                    got_one_more_mantainer = true;
+                                }
+                            }
+                            None => panic!("mantainer-details is empty")
+                        }
+
+                        if got_one_more_mantainer {
+                            let mut md = MantainerDetails::new();
+                            md.mantainer = String::from(mantainer.to_string());
+                            accumulator.mantainer_details.push(md);
+                        }
+                    }
+
+                    for cap in re4.captures_iter(l) {
+                        is_re4 = true;
 
                         let mantainer_name = cap.name("mantainer_name").unwrap().trim();
                         let mantainer_email = cap.name("mantainer_email").unwrap();
@@ -132,21 +181,34 @@ impl Changelog {
                         }
                     }
 
-                    if is_re1 && is_re2 && !is_re2_local && !is_re3 {
-                        let mut detail = String::from(accumulator.details.last().unwrap().to_string());
+                    if is_re1 && is_re2 && !is_re2_local && !is_re3 && !is_re4 {
+                        let mut md = accumulator
+                            .mantainer_details
+                            .iter_mut()
+                            .last()
+                            .unwrap();
+
+                        let mut detail = String::from(md
+                            .details
+                            .pop()
+                            .unwrap()
+                            .to_string());
+
                         detail.push_str("\n");
                         detail.push_str(l);
-                        let len = accumulator.details.len();
-                        accumulator.details[len-1] = detail;
+                        md.details.push(detail);
                     }
 
-                    if is_re1 && is_re2 && is_re3 {
+                    if is_re1 && is_re2 && is_re4 {
                         self.records.push(accumulator.copy());
 
                         is_re1 = false;
                         is_re2 = false;
                         is_re3 = false;
-                        accumulator.details.clear();
+                        is_re4 = false;
+
+                        accumulator.mantainer_details.clear();
+                        accumulator.mantainer_details = vec![MantainerDetails::new()];
                     };
                 }
             }

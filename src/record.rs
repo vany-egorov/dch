@@ -1,12 +1,27 @@
 use chrono::{DateTime,UTC,FixedOffset,Local};
 
+#[derive(Clone)]
+pub struct MantainerDetails {
+    pub mantainer: String,
+    pub details: Vec<String>,
+}
+
+impl MantainerDetails {
+    pub fn new() -> MantainerDetails {
+        MantainerDetails {
+            mantainer: "".to_string(),
+            details: Vec::new(),
+        }
+    }
+}
+
 pub struct Record {
     pub package: String,
     pub version: String,
     pub distribution: String,
     pub urgency: String,
 
-    pub details: Vec<String>,
+    pub mantainer_details: Vec<MantainerDetails>,
 
     pub mantainer_name: String,
     pub mantainer_email: String,
@@ -21,7 +36,7 @@ impl Record {
             distribution: "".to_string(),
             urgency: "".to_string(),
 
-            details: Vec::new(),
+            mantainer_details: vec![MantainerDetails::new()],
 
             mantainer_name: "".to_string(),
             mantainer_email: "".to_string(),
@@ -42,10 +57,17 @@ impl Record {
         ));
 
         s.push_str("\n");
-        for detail in self.details.iter() {
-            s.push_str(&format!("  * {}\n", detail));
+        for md in self.mantainer_details.iter() {
+            if !md.mantainer.is_empty() {
+                s.push_str(&format!("  [ {} ]\n", md.mantainer));
+            }
+
+            for detail in md.details.iter() {
+                s.push_str(&format!("  * {}\n", detail));
+            }
+
+            s.push_str("\n");
         };
-        s.push_str("\n");
 
         s.push_str(&format!(" -- {mantainer_name} <{mantainer_email}>  {date}\n",
             mantainer_name=self.mantainer_name,
@@ -63,7 +85,7 @@ impl Record {
             distribution: String::from(self.distribution.to_string()),
             urgency: String::from(self.urgency.to_string()),
 
-            details: self.details.to_vec(),
+            mantainer_details: self.mantainer_details.to_vec(),
 
             mantainer_name: String::from(self.mantainer_name.to_string()),
             mantainer_email: String::from(self.mantainer_email.to_string()),
