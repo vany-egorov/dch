@@ -21,37 +21,49 @@ fn main() {
     println!("start");
     let start_at = UTC::now();
 
-    // for app_name in &config.apps {
-    //     match config.apps_all.get(app_name) {
-    //         Some(app) => {
-    //             let changelog_path = app.path_changelog().to_str().unwrap().to_string();
+    for package_name in &config.packages {
+        match config.packages_all.get(package_name) {
+            Some(package) => {
+                println!("bumping version for \"{}\"", package_name);
+                println!("using changelog at \"{}\"", package.path_changelog);
+                println!("using dchfile at \"{}\"", package.path_dchfile);
 
-    //             println!("bumping version for \"{}\"", app_name);
-    //             println!("using changelog at \"{}\"", changelog_path);
+                let mut dchfile = DCHFile::new(
+                    &package.path_dchfile,
+                    package_name,
+                ).unwrap();
+                println!("dchfile:");
+                println!("{}", dchfile.to_string());
 
-    //             let mut changelog = Changelog::new();
-    //             changelog.from(&changelog_path);
-    //             changelog.dch();
-    //             changelog.to(&changelog_path);
-    //         }
-    //         None => println!("missing configuration for {}.", app_name),
-    //     }
-    // }
+                let mut changelog = Changelog::new();
+                changelog.from(&package.path_changelog);
+                changelog.up(
+                    dchfile.package,
+                    dchfile.version,
+                    dchfile.distribution,
+                    dchfile.urgency,
 
-    let mut changelog = Changelog::new();
-    changelog.from("/vagrant/dch/example-project/debian/changelog-1");
+                    dchfile.details,
+
+                    config.mantainer.name.to_string(),
+                    config.mantainer.email.to_string(),
+                );
+                println!("up:");
+                println!("{}", changelog.records[0].to_string());
+                changelog.to(&package.path_changelog);
+            }
+            None => println!("missing configuration for {}.", package_name),
+        }
+    }
+
+    // let mut changelog = Changelog::new();
+    // changelog.from("/vagrant/dch/example-project/debian/changelog-1");
     // changelog.from("/vagrant/dch/example-project/debian/changelog-2");
     // changelog.from("/vagrant/dch/example-project/debian/changelog-3");
-    changelog.dch();
-    changelog.to("/vagrant/dch/example-project/debian-out/changelog-1");
+    // changelog.up();
+    // changelog.to("/vagrant/dch/example-project/debian-out/changelog-1");
     // changelog.to("/vagrant/dch/example-project/debian-out/changelog-2");
     // changelog.to("/vagrant/dch/example-project/debian-out/changelog-3");
-
-    let mut dchfile = DCHFile::new(
-        "/vagrant/dch/example-project/debian/Dchfile",
-        "python-project-bin-deb",
-    ).unwrap();
-    println!("{}", dchfile.to_string());
 
     let finsih_at = UTC::now();
     println!("finished at {}", finsih_at - start_at);

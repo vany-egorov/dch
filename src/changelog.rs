@@ -7,7 +7,7 @@ use chrono::{DateTime,UTC};
 use record::{Record, MantainerDetails};
 
 pub struct Changelog {
-    records: Vec<Record>,
+    pub records: Vec<Record>,
 }
 
 impl Changelog {
@@ -35,24 +35,36 @@ impl Changelog {
         s
     }
 
-    pub fn dch(&mut self) {
-        let version = format!("3.0.0.{}", UTC::now().format("%Y%m%d-%H%M%S"));
+    pub fn up(&mut self,
+        package: String,
+        version_template: String,
+        distribution: String,
+        urgency: String,
+
+        details: Vec<String>,
+
+        mantainer_name: String,
+        mantainer_email: String,
+    ) {
+        let version = UTC::now().format(&version_template);
 
         let mut record = Record::new();
-        record.package = "(^.^)".to_string();
+        record.package = package;
         record.version = version.to_string();
-        record.distribution = "stable".to_string();
-        record.urgency = "medium".to_string();
+        record.distribution = distribution;
+        record.urgency = urgency;
 
-        record.mantainer_details
-            .iter_mut()
-            .last()
-            .unwrap()
-                .details
-                .push("autocommit-fix".to_string());
+        for detail in details {
+            record.mantainer_details
+                .iter_mut()
+                .last()
+                .unwrap()
+                    .details
+                    .push(detail);
+        }
 
-        record.mantainer_name = "Ivan Egorov".to_string();
-        record.mantainer_email = "vany.egorov@gmail.com".to_string();
+        record.mantainer_name = mantainer_name;
+        record.mantainer_email = mantainer_email;
 
         self.records.insert(0, record);
     }

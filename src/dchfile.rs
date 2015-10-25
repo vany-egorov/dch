@@ -82,13 +82,18 @@ pub struct DCHFile {
 }
 
 impl DCHFile {
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&mut self) -> String {
         let mut s = String::new();
 
         s.push_str(&format!("package: {}\n", self.package));
         s.push_str(&format!("version: {}\n", self.version));
         s.push_str(&format!("distribution: {}\n", self.distribution));
         s.push_str(&format!("urgency: {}\n", self.urgency));
+
+        s.push_str(&format!("details:\n"));
+        for detail in self.details.iter_mut() {
+            s.push_str(&format!("\t - {}\n", detail));
+        }
 
         s
     }
@@ -129,6 +134,13 @@ impl DCHFile {
             before: Vec::new(),
             after: Vec::new(),
         };
+
+        for v in yaml["details"].as_vec().unwrap() {
+            let mut s = v.as_str().unwrap().to_string();
+            s = s.replace("{{ package }}", &it.package);
+            s = s.replace("{{ version }}", &it.version);
+            it.details.push(s);
+        }
 
         Ok(it)
     }
